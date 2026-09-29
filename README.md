@@ -130,7 +130,7 @@ Parallel sub-agents pay off when the work splits cleanly into parts that each fi
 
 ### 18. Sandboxing and granting autonomy gradually
 
-A coding agent runs repo code, package scripts, and network requests. Run it in a dev container, VM, or cloud sandbox with scoped credentials, limited write paths, and a network allowlist. Then grant autonomy gradually: allow low-risk commands and paths, set budgets, and keep approval for privileges, production, publishing, and deleting. Check the permission config into the repo. [Claude Code](https://code.claude.com/docs/en/security), [Codex](https://developers.openai.com/codex/agent-approvals-security), and [Copilot](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent) document their controls.
+A coding agent runs repo code, package scripts, and network requests. Run it in a dev container, VM, cloud sandbox, or an OS-level sandbox like sandbox-runtime, with scoped credentials, limited write paths, and a network allowlist. Then grant autonomy gradually: allow low-risk commands and paths, set budgets, and keep approval for privileges, production, publishing, and deleting. Check the permission config into the repo. [Claude Code](https://code.claude.com/docs/en/security), [Codex](https://developers.openai.com/codex/agent-approvals-security), and [Copilot](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-cloud-agent) document their controls.
 
 **In practice:** agents run sandboxed by default with a checked-in permission config: low-risk commands need no prompt, production, publishing, and deleting need approval, and every run leaves an audit trail.
 
@@ -140,21 +140,27 @@ Agents also work while you don't. Delegate a brief to a background or cloud agen
 
 **In practice:** at least one agent runs unattended, delegated from a brief or triggered by a schedule or event, and opens a draft PR, issue update, or report that a human and automated checks review before anything important lands.
 
+### 20. Agent hierarchies supervised by exception
+
+Past a handful of parallel agents, reviewing every run stops scaling. A lead agent splits a goal from the spec into tasks, dispatches worker sub-agents, and routes their output through reviewer agents and CI (#3). You set intent through specs and budgets, and step in on failures, escalations, and anomalies. This needs a trace for every run (#16) and hard limits on cost and blast radius (#18). The [Steps of AI Adoption](https://claude.ai/code/artifact/bfdfaef9-bc62-4dfe-ba9e-c58a26c9accf) classification maps the path from one supervised agent to hundreds.
+
+**In practice:** a lead agent dispatched worker and reviewer sub-agents from one spec, every run is visible in a trace or dashboard, and you handled an escalation instead of reading every diff.
+
 ## Harness and context engineering
 
-### 20. Context engineering and token efficiency
+### 21. Context engineering and token efficiency
 
 The model recalls less as the context window fills, so choose what it sees. Keep instructions short, the toolset small, fetch information only when needed, filter command output, and use prompt caching and model routing. Aim for value per token rather than the lowest count, know your budget, and watch usage per tool, since parallel agents multiply spend. Compression tools like Headroom and RTK help, but check task quality as well as token savings.
 
 **In practice:** you've measured cost, latency, and success before and after a context change, you know your budget and where to see usage per tool, and you can show the savings didn't hurt correctness or hide something important.
 
-### 21. Budgets, stop conditions, and state files for long-running agents
+### 22. Budgets, stop conditions, and state files for long-running agents
 
 A run that lasts hours needs a turn or token budget, a stop condition, a definition of progress, and feedback each step, such as test results or a checklist. Sessions end through crashes and handoffs, so keep the state in a progress file the agent updates and re-reads, and prefer a clean context with a clear handoff over summarizing history in place. Harness workarounds exist because of what the model can't do yet; review them as models improve.
 
 **In practice:** a long or multi-session run finished cleanly because you set the budget and stop condition, and its state lived in a file the agent re-read rather than in chat history alone.
 
-### 22. Code intelligence and structural memory
+### 23. Code intelligence and structural memory
 
 Agents edit more accurately when they resolve symbols, types, and references instead of matching text. Give them a language server, AST tools, and semantic search, so edits stop missing call sites or inventing APIs. On very large repos, index the codebase into a code graph of functions, imports, and call chains that the agent queries over MCP, answering "what calls this?" in a few hundred tokens. CodeGraph, Potpie, and codebase-memory-mcp build such graphs; Serena exposes language-server tools over MCP.
 
@@ -162,6 +168,7 @@ Agents edit more accurately when they resolve symbols, types, and references ins
 
 #### Further reading
 
+- [DORA: research and capabilities behind software delivery performance](https://dora.dev/)
 - [Anthropic: Harness design for long-running agent applications](https://www.anthropic.com/engineering/harness-design-long-running-apps)
 - [Martin Fowler: Harness engineering for coding agents](https://martinfowler.com/articles/harness-engineering.html)
 - [LangChain: The Anatomy of an Agent Harness](https://www.langchain.com/blog/the-anatomy-of-an-agent-harness)
@@ -169,25 +176,25 @@ Agents edit more accurately when they resolve symbols, types, and references ins
 
 ## Security, maintenance, and policy
 
-### 23. Security-focused review and threat modeling
+### 24. Security-focused review and threat modeling
 
 Code review and tests miss authorization gaps, injection points, and exposed secrets. Use AI to trace trust boundaries and suggest abuse paths, then confirm the findings with [Codex Security](https://developers.openai.com/codex/security), CodeQL, Semgrep, and targeted tests.
 
 **In practice:** you've run a real security review or threat-model pass on a meaningful feature or diff, confirmed the findings, and added a fix, a test, or a written decision to accept the risk.
 
-### 24. Supply-chain and dual-use risk
+### 25. Supply-chain and dual-use risk
 
 An agent can invent a package name that attackers then register with malware (slopsquatting), pull in a compromised dependency, or follow a prompt injection hidden in content it fetched. Check that a suggested dependency exists and is the right one, pin and scan it, and keep untrusted content such as web pages, issues, and MCP tool results away from tools that can act.
 
 **In practice:** you've caught or prevented a made-up or malicious dependency, and in your setup untrusted input can't reach a destructive action without an approval.
 
-### 25. Managing dependency upgrades and security patches
+### 26. Managing dependency upgrades and security patches
 
 Upgrades and security patches get put off, which is how CVEs pile up. An agent reads the changelog, updates the call sites, and runs the tests in a loop. Run it unattended (#19): Renovate or Dependabot opens the PR, the agent fixes the breaking changes, and a human reviews the draft.
 
 **In practice:** you've shipped a dependency-upgrade PR where AI handled the breaking changes, applied a security patch with AI triaging the CVE, or used AI to read changelogs and flag breaks early. Your upgrade workflow pairs Dependabot, Renovate, or Snyk with AI.
 
-### 26. AI tools, models, and MCP servers compliant with company policy
+### 27. AI tools, models, and MCP servers compliant with company policy
 
 Use only the AI tools, models, MCP servers, and Skills your company has approved, with the data the policy allows. The policy covers everyone who builds with agents, and setup enforces it: enterprise accounts, managed settings, and organization-level policies.
 
@@ -221,7 +228,6 @@ Use only the AI tools, models, MCP servers, and Skills your company has approved
 - [Comby](https://comby.dev) - Language-agnostic structural search-and-replace for multi-file refactoring.
 - [OpenRewrite](https://github.com/openrewrite/rewrite) - Automated mass refactoring with a large recipe catalog, strongest on the JVM.
 - [Codemod Registry](https://codemod.com/registry) - Ready-made codemods for framework and library migrations, run through the Codemod CLI.
-- [YYLO](https://github.com/yylo-dev/yylo) - Command-line orchestrator for coding agents: each task creates a dedicated branch/worktree behind typed task, validation, merge, and release-readiness boundaries, with a merge queue owning risk-based review of receipt-backed changes.
 
 ### Spec-driven development
 
@@ -236,6 +242,7 @@ Use only the AI tools, models, MCP servers, and Skills your company has approved
 - [MADR](https://github.com/adr/madr) - Markdown ADR template.
 - [log4brains](https://github.com/thomvaill/log4brains) - CLI and static site generator for ADRs.
 - [adr-tools](https://github.com/npryce/adr-tools) - Shell-based toolchain for creating and numbering ADRs.
+- [humanizer](https://github.com/blader/humanizer) - Agent Skill that removes signs of AI-generated writing from docs and other text.
 - [Structurizr](https://structurizr.com) - C4 model diagrams from a text DSL, so agents can read and update the architecture.
 - [LikeC4](https://likec4.dev) - Architecture-as-code language and toolkit for C4-style diagrams kept in the repo.
 - [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) - C4 model diagrams in PlantUML text.
@@ -249,6 +256,8 @@ Use only the AI tools, models, MCP servers, and Skills your company has approved
 - [Context7](https://github.com/upstash/context7) - Up-to-date library documentation for AI agents, loadable selectively.
 - [Skills.sh](https://skills.sh/) - The Open Agent Skills Ecosystem from Vercel Labs.
 - [Agent OS](https://github.com/buildermethods/agent-os) - Injects your codebase standards and specs into agent instructions.
+- [gstack](https://github.com/garrytan/gstack) - Opinionated Claude Code setup with role-based Skills for planning, design review, QA, and release.
+- [Google Skills](https://github.com/google/skills) - Google's Agent Skills for Google Cloud and other Google products.
 - [claude-mem](https://github.com/thedotmack/claude-mem) - Persistent, compressed context carried across coding-agent sessions.
 
 ### MCP servers for team systems
@@ -327,6 +336,7 @@ Use only the AI tools, models, MCP servers, and Skills your company has approved
 - [Superset](https://superset.sh) - Orchestration workspace for any coding agent, with a worktree per task and every session in one place.
 - [parallel-code](https://github.com/johannesjo/parallel-code) - Run Claude Code, Codex, and Gemini side by side, each in its own Git worktree.
 - [Portless](https://github.com/vercel-labs/portless) - Stable named URLs for localhost services, worktree-aware (Vercel Labs).
+- [YYLO](https://github.com/yylo-dev/yylo) - Command-line orchestrator for coding agents: each task creates a dedicated branch/worktree behind typed task, validation, merge, and release-readiness boundaries, with a merge queue owning risk-based review of receipt-backed changes.
 - [Aspire](https://aspire.dev/) - Isolated multi-service local dev/test stacks; now language-agnostic (formerly .NET Aspire).
 
 ### Sandboxes and permissions
@@ -335,6 +345,7 @@ Use only the AI tools, models, MCP servers, and Skills your company has approved
 - [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) - Isolated sandboxes from Docker for running coding agents with controlled file and network access.
 - [E2B](https://github.com/e2b-dev/E2B) - Open-source secure cloud sandboxes for running agent-generated code.
 - [Daytona](https://github.com/daytonaio/daytona) - Secure, elastic infrastructure for running AI-generated code in isolated sandboxes.
+- [sandbox-runtime](https://github.com/anthropics/sandbox-runtime) - Anthropic's OS-level sandbox for agents, MCP servers, and any command: filesystem and network allowlists through Seatbelt on macOS and bubblewrap on Linux, no containers (beta).
 
 ### Agents in CI and automations
 
@@ -372,6 +383,11 @@ Use only the AI tools, models, MCP servers, and Skills your company has approved
 - [Socket](https://docs.socket.dev) - Supply-chain security that checks packages for malware, typosquats, and risky behavior before install.
 - [Syft](https://github.com/anchore/syft) - CLI that generates a software bill of materials (SBOM) from code and containers.
 - [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon) - Open-source threat modeling tool with diagrams and threat lists.
+
+### Local inference
+
+- [Ollama](https://github.com/ollama/ollama) - Run open models locally behind an OpenAI-compatible API.
+- [oMLX](https://github.com/jundot/omlx) - LLM inference server for Apple Silicon with continuous batching and SSD caching, managed from the macOS menu bar.
 
 ### Voice input
 
